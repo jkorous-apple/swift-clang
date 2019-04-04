@@ -286,18 +286,6 @@ IndexRecordWriter::endRecord(StringRef Filename, std::string &Error,
   if (OutRecordFile)
     *OutRecordFile = RecordName;
 
-  if (std::error_code EC =
-          fs::access(RecordPath.c_str(), fs::AccessMode::Exist)) {
-    if (EC != errc::no_such_file_or_directory) {
-      llvm::raw_string_ostream Err(Error);
-      Err << "could not access record '" << RecordPath
-          << "': " << EC.message();
-      return Result::Failure;
-    }
-  } else {
-    return Result::AlreadyExists;
-  }
-
   State.RecordPath = RecordPath.str();
 
   struct ScopedDelete {
@@ -338,6 +326,9 @@ IndexRecordWriter::endRecord(StringRef Filename, std::string &Error,
   // Atomically move the unique file into place.
   if (std::error_code EC =
           sys::fs::rename(TempPath.c_str(), State.RecordPath.c_str())) {
+    if (EC == errc::file_exists)
+      return Result::Success;
+
     llvm::raw_string_ostream Err(Error);
     Err << "failed to rename '" << TempPath << "' to '" << State.RecordPath << "': " << EC.message();
     return Result::Failure;
