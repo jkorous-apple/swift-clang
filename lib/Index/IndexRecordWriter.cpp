@@ -260,7 +260,7 @@ IndexRecordWriter::beginRecord() {
 }
 
 IndexRecordWriter::Result
-IndexRecordWriter::endRecord(StringRef Filename, const llvm::hash_code& RecordHash, std::string &Error,
+IndexRecordWriter::endRecord(StringRef Filename, std::string &Error,
                              writer::SymbolWriterCallback GetSymbolForDecl, std::string* OutRecordFile) {
   using namespace llvm::sys;
   assert(Record && "called endRecord without calling beginRecord");
@@ -273,10 +273,9 @@ IndexRecordWriter::endRecord(StringRef Filename, const llvm::hash_code& RecordHa
 
   std::string RecordName;
   {
-// TODO this version should in theory produce the same index as swift-5.1
-/*
+
     const hash_code RecordHash = hash_combine_range(State.Buffer.begin(), State.Buffer.end());
-*/
+
     llvm::raw_string_ostream RN(RecordName);
     RN << path::filename(Filename);
     RN << "-" << APInt(64, RecordHash).toString(36, /*Signed=*/false);

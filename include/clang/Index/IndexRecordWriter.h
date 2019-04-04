@@ -87,7 +87,7 @@ public:
   /// any necessary storage.
   ///
   /// \return Success, or Failure and sets \p Error.
-  Result endRecord(StringRef Filename, const llvm::hash_code& RecordHash, std::string &Error,
+  Result endRecord(StringRef Filename, std::string &Error,
                    writer::SymbolWriterCallback GetSymbolForDecl, std::string* OutRecordFile = nullptr);
 
   /// Add an occurrence of the symbol \p D with the given \p Roles and location.

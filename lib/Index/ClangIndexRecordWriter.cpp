@@ -54,8 +54,6 @@ bool ClangIndexRecordWriter::writeRecord(StringRef Filename,
                                          std::string &Error,
                                          std::string *OutRecordFile) {
 
-  auto RecordHash = Hasher.hashRecord(IdxRecord);
-
   switch (Impl.beginRecord()) {
   case IndexRecordWriter::Result::Success:
     break; // Continue writing.
@@ -88,7 +86,7 @@ bool ClangIndexRecordWriter::writeRecord(StringRef Filename,
   PrintingPolicy Policy(Ctx.getLangOpts());
   Policy.SuppressTemplateArgsInCXXConstructors = true;
 
-  auto Result = Impl.endRecord(Filename, RecordHash, Error, 
+  auto Result = Impl.endRecord(Filename, Error, 
       [&](writer::OpaqueDecl OD, SmallVectorImpl<char> &Scratch) {
     const Decl *D = static_cast<const Decl *>(OD);
     auto Info = getSymbolInfo(D);
