@@ -56,7 +56,7 @@ bool ClangIndexRecordWriter::writeRecord(StringRef Filename,
 
   auto RecordHash = Hasher.hashRecord(IdxRecord);
 
-  switch (Impl.beginRecord(Filename, RecordHash, Error, OutRecordFile)) {
+  switch (Impl.beginRecord()) {
   case IndexRecordWriter::Result::Success:
     break; // Continue writing.
   case IndexRecordWriter::Result::Failure:
@@ -88,7 +88,7 @@ bool ClangIndexRecordWriter::writeRecord(StringRef Filename,
   PrintingPolicy Policy(Ctx.getLangOpts());
   Policy.SuppressTemplateArgsInCXXConstructors = true;
 
-  auto Result = Impl.endRecord(Error,
+  auto Result = Impl.endRecord(Filename, RecordHash, Error, 
       [&](writer::OpaqueDecl OD, SmallVectorImpl<char> &Scratch) {
     const Decl *D = static_cast<const Decl *>(OD);
     auto Info = getSymbolInfo(D);
@@ -116,7 +116,7 @@ bool ClangIndexRecordWriter::writeRecord(StringRef Filename,
     unsigned CGNameLen = Scratch.size() - NameLen;
     Sym.CodeGenName = StringRef(Scratch.data() + NameLen, CGNameLen);
     return Sym;
-  });
+  }, OutRecordFile);
 
   switch (Result) {
   case IndexRecordWriter::Result::Success:

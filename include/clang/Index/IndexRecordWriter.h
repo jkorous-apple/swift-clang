@@ -76,8 +76,7 @@ public:
   /// \returns Success if we should continue writing this record, AlreadyExists
   /// if the record file has already been written, or Failure if there was an
   /// error, in which case \p Error will be set.
-  Result beginRecord(StringRef Filename, llvm::hash_code RecordHash,
-                     std::string &Error, std::string *RecordFile = nullptr);
+  Result beginRecord();
 
   /// Finish writing the record file.
   ///
@@ -88,8 +87,8 @@ public:
   /// any necessary storage.
   ///
   /// \return Success, or Failure and sets \p Error.
-  Result endRecord(std::string &Error,
-                   writer::SymbolWriterCallback GetSymbolForDecl);
+  Result endRecord(StringRef Filename, const llvm::hash_code& RecordHash, std::string &Error,
+                   writer::SymbolWriterCallback GetSymbolForDecl, std::string* OutRecordFile = nullptr);
 
   /// Add an occurrence of the symbol \p D with the given \p Roles and location.
   void addOccurrence(writer::OpaqueDecl D, SymbolRoleSet Roles, unsigned Line,

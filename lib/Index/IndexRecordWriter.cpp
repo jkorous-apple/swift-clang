@@ -241,13 +241,42 @@ IndexRecordWriter::IndexRecordWriter(StringRef IndexPath)
 }
 
 IndexRecordWriter::Result
-IndexRecordWriter::beginRecord(StringRef Filename, hash_code RecordHash,
-                               std::string &Error, std::string *OutRecordFile) {
-  using namespace llvm::sys;
+IndexRecordWriter::beginRecord() {
   assert(!Record && "called beginRecord before calling endRecord on previous");
+
+  // Write the record header.
+  auto *State = new RecordState("TODO HACK");
+  Record = State;
+  llvm::BitstreamWriter &Stream = State->Stream;
+  Stream.Emit('I', 8);
+  Stream.Emit('D', 8);
+  Stream.Emit('X', 8);
+  Stream.Emit('R', 8);
+
+  writeBlockInfo(Stream);
+  writeVersionInfo(Stream);
+
+  return Result::Success;
+}
+
+IndexRecordWriter::Result
+IndexRecordWriter::endRecord(StringRef Filename, const llvm::hash_code& RecordHash, std::string &Error,
+                             writer::SymbolWriterCallback GetSymbolForDecl, std::string* OutRecordFile) {
+  using namespace llvm::sys;
+  assert(Record && "called endRecord without calling beginRecord");
+  // TODO
+  auto &State = *static_cast<RecordState *>(Record);
+
+  if (!State.Decls.empty()) {
+    writeDecls(State.Stream, State.Decls, State.Occurrences, GetSymbolForDecl);
+  }
 
   std::string RecordName;
   {
+// TODO this version should in theory produce the same index as swift-5.1
+/*
+    const hash_code RecordHash = hash_combine_range(State.Buffer.begin(), State.Buffer.end());
+*/
     llvm::raw_string_ostream RN(RecordName);
     RN << path::filename(Filename);
     RN << "-" << APInt(64, RecordHash).toString(36, /*Signed=*/false);
@@ -270,36 +299,13 @@ IndexRecordWriter::beginRecord(StringRef Filename, hash_code RecordHash,
     return Result::AlreadyExists;
   }
 
-  // Write the record header.
-  auto *State = new RecordState(RecordPath.str());
-  Record = State;
-  llvm::BitstreamWriter &Stream = State->Stream;
-  Stream.Emit('I', 8);
-  Stream.Emit('D', 8);
-  Stream.Emit('X', 8);
-  Stream.Emit('R', 8);
+  State.RecordPath = RecordPath.str();
 
-  writeBlockInfo(Stream);
-  writeVersionInfo(Stream);
-
-  return Result::Success;
-}
-
-IndexRecordWriter::Result
-IndexRecordWriter::endRecord(std::string &Error,
-                             writer::SymbolWriterCallback GetSymbolForDecl) {
-  assert(Record && "called endRecord without calling beginRecord");
-  auto &State = *static_cast<RecordState *>(Record);
-  Record = nullptr;
   struct ScopedDelete {
     RecordState *S;
     ScopedDelete(RecordState *S) : S(S) {}
     ~ScopedDelete() { delete S; }
   } Deleter(&State);
-
-  if (!State.Decls.empty()) {
-    writeDecls(State.Stream, State.Decls, State.Occurrences, GetSymbolForDecl);
-  }
 
   if (std::error_code EC = sys::fs::create_directory(sys::path::parent_path(State.RecordPath))) {
     llvm::raw_string_ostream Err(Error);
